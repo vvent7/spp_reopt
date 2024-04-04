@@ -1,0 +1,3 @@
+
+DATASET_DIR=datasets
+RESULT_DIR=results
