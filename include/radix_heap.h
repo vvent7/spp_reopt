@@ -306,15 +306,25 @@ class pair_radix_heap_decrease_duplicate {
     template<typename InputIterator>
     pair_radix_heap_decrease_duplicate(ValueType max_value, InputIterator begin, InputIterator end)
       : pair_radix_heap_decrease_duplicate(max_value) {
-      real_size = std::distance(begin, end);
-      for(auto it = begin; it != end; ++it) {
-        s.emplace(it->first, it->second);
-        keys[it->second] = it->first;
-      }
+      real_size = 0;
+      for(auto it = begin; it != end; ++it, ++real_size)
+        s.emplace(keys[it->second] = it->first, it->second);
     }
 
+    void build(const std::vector<KeyType> &keyMap, InputIterator beginValues, InputIterator endValues){
+      real_size = 0;
+      for(auto it = begin; it != end; ++it, ++real_size)
+        s.emplace(keys[*it] = keyMap[*it], *it);
+    }
+      
+    
     size_t size() const { return real_size; }
     bool empty() const { return real_size == 0; }
+
+    void clear() {
+      real_size = 0;
+      s.clear();
+    }
 
     void insert(KeyType key, ValueType value) {
       ++real_size;

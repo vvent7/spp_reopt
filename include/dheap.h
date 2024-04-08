@@ -32,8 +32,22 @@ class dheap{
       delete[] valueMap;
     }
 
+    //just for spp (key are dist, value are nodes)                            
+    template<typename InputIterator>
+    void build(const std::vector<KeyType> &keyMap, InputIterator beginValues, InputIterator endValues){
+      for(heap_size=0;beginValues!=endValues;++beginValue, ++heap_size){
+        heap[heap_size] = {keyMap[*beginValues], *beginValues};
+        valueMap[*beginValues] = heap_size;
+      }
+      if(heap_size>1){
+        for(size_t i=parent(heap_size-1); i>0; --i) restore_down(i);
+        restore_down(0);
+      }
+    }
+
     size_t size() const { return heap_size; };
     bool empty() const { return heap_size==0; }
+    void clear(){ heap_size = 0; }
     
     void insert(KeyType key, ValueType value){
       heap[heap_size] = {key,value};
@@ -61,8 +75,6 @@ class dheap{
       restore_up(index);
     }
 
-    void clear(){ heap_size = 0; }
-  
   private:
     size_t max_size;
     ValueType max_value;
