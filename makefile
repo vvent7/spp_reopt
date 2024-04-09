@@ -14,7 +14,8 @@ SRC_EXT = cpp
 SOURCES = $(shell find $(SRC_PATH) -name '*.$(SRC_EXT)')
 
 # flags #
-COMPILE_FLAGS = -O3 -std=c++20 -DNDEBUG -W -Wall -Wshadow
+COMPILE_FLAGS = -O3 -std=c++20 -W -Wall 
+# -DNDEBUG -Wshadow
 INCLUDES = -I include/ -I /usr/local/include
 
 @PHONY: main

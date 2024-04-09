@@ -10,7 +10,7 @@ template<typename KeyType, typename ValueType, size_t d = 2>
 class dheap{
   using pkv = std::pair<KeyType, ValueType>;
   public:
-    dheap();
+    dheap() : max_size(0), max_value(0), heap(nullptr), valueMap(nullptr){}
     dheap(size_t max_size, ValueType max_value)
       : max_size(max_size), max_value(max_value),
         heap(new pkv[max_size]),
@@ -35,7 +35,7 @@ class dheap{
     //just for spp (key are dist, value are nodes)                            
     template<typename InputIterator>
     void build(const std::vector<KeyType> &keyMap, InputIterator beginValues, InputIterator endValues){
-      for(heap_size=0;beginValues!=endValues;++beginValue, ++heap_size){
+      for(heap_size=0;beginValues!=endValues;++beginValues, ++heap_size){
         heap[heap_size] = {keyMap[*beginValues], *beginValues};
         valueMap[*beginValues] = heap_size;
       }
@@ -82,10 +82,8 @@ class dheap{
     size_t heap_size;
 
     pkv *heap;
-    // std::vector<pii> heap;
     
-    size_t *valueMap;
-    // std::vector<int> valueMap; // valueMap[value] = index in heap
+    size_t *valueMap; // valueMap[value] = index in heap
     
     void swap_nodes(size_t i, size_t j){
       ValueType valueI = heap[i].second;

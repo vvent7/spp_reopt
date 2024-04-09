@@ -12,11 +12,11 @@ namespace spp{
   using namespace graph;
   using dist_t = unsigned long long;
   using answer_t = std::pair<std::vector<dist_t>, std::vector<node_t>>; //{dists, parents}
-
   constexpr dist_t INF = std::numeric_limits<dist_t>::max();
 
   class SPP{
   public:
+    SPP() : n(0), buffer1(nullptr), buffer2(nullptr) { }
     SPP(const node_t n)
       : n(n), buffer1(new node_t[n+1]), buffer2(new node_t[n+1]) { }
     SPP(const GraphW &g) : SPP(g.n_nodes()){ }
@@ -37,11 +37,8 @@ namespace spp{
     void dijkstra(const GraphW &g, node_t s, answer_t &ans, queue_t &q){
       timer t(&lastTiming);
 
-      auto &[dist, p] = ans;
-      // dist.assign(g.n_nodes() + 1, INF);
-      // p.assign(g.n_nodes() + 1, 0);
+      auto &[d, p] = ans;
 
-      // queue_t q(g.n_nodes(), g.n_nodes()); //max_size, max_value
       q.insert(d[s]=0, s); p[s] = s; //root
       while(!q.empty()){
         auto [du, u] = q.extract_min();
