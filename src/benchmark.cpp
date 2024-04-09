@@ -54,13 +54,21 @@ namespace benchmark{
 
     //ceiled portion (first nodesByDist.size()%J_GROUPS groups)
     for(size_t j=0;j<ceiled_groups;++j){
-      size_t l = j*(group_size+1), r = l + group_size + 1;
-      
+      size_t l = j*(group_size+1), r = l + group_size;
+      pair<size_t, size_t> range = find_k_s(nodesByDist, l, r);
+      //process the new sources s...
+    }
+
+    //floor portion
+    for(size_t j=0;j<J_GROUPS-ceiled_groups;++j){
+      size_t l = ceiled_groups*(group_size+1) + j*group_size, r = l + group_size - 1;
+      pair<size_t, size_t> range = find_k_s(nodesByDist, l, r);
+      //process the new sources s...
     }
   }
 
   
-  //PRIVATE
+  //==============PRIVATE==============
 
   void Benchmark::set_r(spp::node_t r){
     reset(r_ans, rh);
@@ -80,7 +88,7 @@ namespace benchmark{
 
     //get the K_NODES closest to the average
     long long ans_l, ans_r;
-    ans_r = upper_bound(nodesByDist.begin()+l, nodesByDist.begin()+l+t, (spp::dist_t) floor(avg)) - nodesByDist.begin();
+    ans_r = upper_bound(nodesByDist.begin()+l, nodesByDist.begin()+l+t, pdn(floor(avg),0)) - nodesByDist.begin();
     ans_l = ans_r - 1;
 
     while(ans_r - ans_l - 1 < K_NODES){

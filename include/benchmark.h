@@ -17,6 +17,7 @@ namespace benchmark{
   typedef enum {DIJKSTRA, RDIJKSTRA} SppAlgo;
   typedef enum {DHEAP, RADIX} SppQueue;
 
+  using pdn = std::pair<spp::dist_t, spp::node_t>;
   using vpdn = std::vector<std::pair<spp::dist_t, spp::node_t>>;
 
   class Benchmark {
@@ -53,7 +54,7 @@ namespace benchmark{
 
     void set_r(spp::node_t r);
     
-    std::pair<size_t, size_t> process_k_s(const vpdn &nodesByDist, size_t l, size_t r);
+    std::pair<size_t, size_t> find_k_s(const vpdn &nodesByDist, size_t l, size_t r);
   };
 }
 
