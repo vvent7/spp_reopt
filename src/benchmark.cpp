@@ -32,7 +32,7 @@ namespace benchmark{
     vector<pair<spp::dist_t, spp::node_t>> nodesByDist;
     nodesByDist.reserve(g.max_node() - g.min_node() + 1);
     for(spp::node_t u = g.min_node(); u <= g.max_node(); ++u)
-      nodesByDist.emplace_back(r_ans.first[u], u);
+      nodesByDist.emplace_back(r_dist[u], u);
     sort(nodesByDist.begin(), nodesByDist.end());
 
     size_t group_size = nodesByDist.size()/J_GROUPS; //floor
@@ -57,9 +57,12 @@ namespace benchmark{
         for(int i=0;i<NREPS_WARMUP;++i) run_s(s); //ignore for warmup
         for(int i=0;i<NREPS;++i){
           auto times = run_s(s);
-          cout<<r<<","<<s<<","<<j+1;
-          for(auto x : times) cout<<","<<x;
-          cout<<endl;
+          printf("%u,%u,%zu", r, s, j+1);
+          for(auto x : times) printf(",%.3lf", x);
+          puts("");
+          // cout<<r<<","<<s<<","<<j+1;
+          // for(auto x : times) cout<<","<<x;
+          // cout<<endl;
         }
       }
 
@@ -67,7 +70,8 @@ namespace benchmark{
   }
 
   void Benchmark::run(){
-    cout<<CSV_HEADER<<endl;
+    puts(CSV_HEADER);
+    // cout<<CSV_HEADER<<endl;
     auto r = random_factory::k_random_nonrepeat(P_SOURCES, g.min_node(), g.max_node());
     for(auto rI : r) run_r(rI);
   }
@@ -76,48 +80,48 @@ namespace benchmark{
   //==============PRIVATE==============
 
   void Benchmark::set_r(spp::node_t r){
-    reset(r_ans, rh);
-    sp.dijkstra(g, r, r_ans, rh);
-    r_spp_tree = sp.spp_tree(r_ans.second);
+    reset(rh, r_dist, r_parents);
+    sp.dijkstra_parents(g, r, r_dist, r_parents, rh);
+    r_spp_tree = sp.spp_tree(r_parents);
   }
 
   vector<double> Benchmark::run_s(spp::node_t s){
     vector<double> times(4);
 
     //DIJKSTRA, DHEAP
-    reset(s_ans, dh);
-    sp.dijkstra(g, s, s_ans, dh);
+    reset(dh, s_dist);
+    sp.dijkstra(g, s, s_dist, dh);
     times[0] = sp.last_timing();
     
     #ifndef NDEBUG
-    auto aux=s_ans;
+    auto aux=s_dist;
     #endif
 
     //DIJKSTRA, RADIX
-    reset(s_ans, rh);
-    sp.dijkstra(g, s, s_ans, rh);
+    reset(rh, s_dist);
+    sp.dijkstra(g, s, s_dist, rh);
     times[1] = sp.last_timing();
 
     #ifndef NDEBUG
-    if(aux.first!=s_ans.first) cout<<"ERROR - DIJKSTRA RADIX\n", exit(1);
+    if(aux!=s_dist) cout<<"ERROR - DIJKSTRA RADIX\n", exit(1);
     #endif
 
     //RDIJKSTRA, DHEAP
-    reset(s_ans, dh);
-    sp.r_dijkstra(g, s, s_ans, r_ans, r_spp_tree, dh);
+    reset(dh, s_dist);
+    sp.r_dijkstra(g, s, s_dist, r_dist, r_spp_tree, dh);
     times[2] = sp.last_timing();
 
     #ifndef NDEBUG
-    if(aux.first!=s_ans.first) cout<<"ERROR - RDIJKSTRA DHEAP\n", exit(1);
+    if(aux!=s_dist) cout<<"ERROR - RDIJKSTRA DHEAP\n", exit(1);
     #endif
 
     //RDIJKSTRA, RADIX
-    reset(s_ans, rh);
-    sp.r_dijkstra(g, s, s_ans, r_ans, r_spp_tree, rh);
+    reset(rh, s_dist);
+    sp.r_dijkstra(g, s, s_dist, r_dist, r_spp_tree, rh);
     times[3] = sp.last_timing();
 
     #ifndef NDEBUG
-    if(aux.first!=s_ans.first) cout<<"ERROR - RDIJKSTRA RADIX\n", exit(1);
+    if(aux!=s_dist) cout<<"ERROR - RDIJKSTRA RADIX\n", exit(1);
     #endif
 
     return times;

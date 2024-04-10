@@ -8,13 +8,12 @@
 #include "spp.h"
 #include "graph.h"
 #include "spp_queues.h"
-
 namespace benchmark{
   constexpr int P_SOURCES = 5;   // number of sources (R)
   constexpr int J_GROUPS = 10;    // number of groups (for each source R)
-  constexpr int K_NODES = 10;     // number of nodes by group
-  constexpr int NREPS_WARMUP = 1; // reps to warmup (by new source S)
-  constexpr int NREPS = 5;        // reps to measure (by new source S)
+  constexpr int K_NODES = 5;     // number of nodes by group
+  constexpr int NREPS_WARMUP = 0; // reps to warmup (by new source S)
+  constexpr int NREPS = 1;        // reps to measure (by new source S)
 
   using pdn = std::pair<spp::dist_t, spp::node_t>;
   using vpdn = std::vector<std::pair<spp::dist_t, spp::node_t>>;
@@ -39,18 +38,24 @@ namespace benchmark{
     //answers (buffers to reuse)
       //First root (r)
     spp::node_t r_cur;
-    spp::answer_t r_ans;
+    spp::distances_t r_dist;
+    spp::parents_t r_parents;
     graph::Graph r_spp_tree;
       //Second root (s)
-    spp::answer_t s_ans;
+    spp::distances_t s_dist;
 
     template<typename queue_t>
-    void reset(spp::answer_t &ans, queue_t &q){
-      auto &[dist, p] = ans;
-      dist.assign(g.n_nodes() + 1, spp::INF);
-      p.assign(g.n_nodes() + 1, 0);
+    void reset(queue_t &q, spp::distances_t &dist){
       q.clear();
+      dist.assign(g.n_nodes() + 1, spp::INF);
     }
+    template<typename queue_t>
+    void reset(queue_t &q, spp::distances_t &dist, spp::parents_t &parents){
+      reset(q, dist);
+      parents.resize(g.n_nodes() + 1);
+      for(auto &v : parents) v.clear();
+    }
+    
 
     void set_r(spp::node_t r);
 

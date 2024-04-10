@@ -15,8 +15,6 @@ int main(int argc, char *argv[]){_
     return 1;
   }
 
-  cout<<fixed<<setprecision(3);
-  
   random_factory::seed(stoull(argv[2]));
   benchmark::Benchmark b(argv[1]);
   b.run();

@@ -11,7 +11,8 @@
 namespace spp{
   using namespace graph;
   using dist_t = unsigned long long;
-  using answer_t = std::pair<std::vector<dist_t>, std::vector<node_t>>; //{dists, parents}
+  using distances_t = std::vector<dist_t>;
+  using parents_t = std::vector<std::vector<node_t>>;
   constexpr dist_t INF = std::numeric_limits<dist_t>::max();
 
   class SPP{
@@ -26,26 +27,44 @@ namespace spp{
       delete [] buffer2;
     }
     
-    Graph spp_tree(std::vector<node_t> &p){
+    Graph spp_tree(parents_t &p){
       Graph tr(p.size());
       for(node_t i=0;i<(node_t)p.size();++i)
-        if(p[i]!=i) tr.add_arc(p[i], i);
+        for(auto u : p[i])
+          if(u!=i) tr.add_arc(u, i);
       return tr;
     }
 
     template<typename queue_t>
-    void dijkstra(const GraphW &g, node_t s, answer_t &ans, queue_t &q){
+    void dijkstra_parents(const GraphW &g, node_t s, distances_t &d, parents_t &p, queue_t &q){
       timer t(&lastTiming);
 
-      auto &[d, p] = ans;
-
-      q.insert(d[s]=0, s); p[s] = s; //root
+      q.insert(d[s]=0, s);
+      p[s].resize(1), p[s][0] = s; //root
       while(!q.empty()){
         auto [du, u] = q.extract_min();
 
         for(auto [v, w] : g[u]){
+          auto d2 = du + w;
+          if(d2 < d[v]){
+            p[v].resize(1), p[v][0] = u;
+            if(d[v]==INF) q.insert(d[v] = du+w, v);
+            else q.decrease_key(d[v] = du+w, v);
+          }
+          if(d2 == d[v]) p[v].push_back(u);
+        }
+      }
+    }
+
+    template<typename queue_t>
+    void dijkstra(const GraphW &g, node_t s, distances_t &d, queue_t &q){
+      timer t(&lastTiming);
+
+      q.insert(d[s]=0, s); //root
+      while(!q.empty()){
+        auto [du, u] = q.extract_min();
+        for(auto [v, w] : g[u]){
           if(d[v] > du + w){
-            p[v]=u;
             if(d[v]==INF) q.insert(d[v] = du+w, v);
             else q.decrease_key(d[v] = du+w, v);
           }
@@ -54,20 +73,17 @@ namespace spp{
     }
 
     template<typename queue_t> // r is previous source
-    answer_t r_dijkstra(const GraphW &g, node_t s, answer_t &ans, const answer_t &r_ans, const Graph &r_tree, queue_t &q){
+    void r_dijkstra(const GraphW &g, node_t s, distances_t &ds, const distances_t &dr, const Graph &r_tree, queue_t &q){
       timer t(&lastTiming);
-
-      auto &[dr, pr] = r_ans;
-      auto &[ds, ps] = ans;
 
       //reoptimization
       node_t *done = buffer1, *toQueue = buffer2;
       size_t doneSz=1, toQueueSz=0;
 
-      done[0] = s; ds[s] = 0; ps[s] = s; //root
+      done[0] = s; ds[s] = 0; //root
       for(size_t i=0;i<doneSz;++i){
         for(auto v : r_tree[done[i]]){
-          ps[v] = done[i];
+          if(ds[v]!=INF) continue; //already done (reoptimization)
           ds[v] = dr[v] - dr[s];
           done[doneSz++] = v;
         }
@@ -79,7 +95,6 @@ namespace spp{
           if(ds[v] > ds[u] + w){
             if(ds[v]==INF) toQueue[toQueueSz++] = v;
             ds[v] = ds[u] + w;
-            ps[v] = u;
           }
         }
       }
@@ -92,14 +107,11 @@ namespace spp{
 
         for(auto [v, w] : g[u]){
           if(ds[v] > du + w){
-            ps[v]=u;
             if(ds[v]==INF) q.insert(ds[v] = du+w, v);
             else q.decrease_key(ds[v] = du+w, v);
           }
         }
       }
-
-      return ans;
     }
 
     double last_timing() const { return lastTiming; }

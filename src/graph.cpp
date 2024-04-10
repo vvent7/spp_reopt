@@ -7,6 +7,7 @@
 #include <fstream> // std::ifstream
 #include <iostream>
 #include <assert.h>
+#include <cstring>
 
 namespace graph{
 
@@ -43,25 +44,48 @@ namespace graph{
   GraphW::GraphW(const char *fileName) : m(0) {
     init();
 
-    std::ifstream f(fileName);
-    
-    assert(f.is_open() && "Instance File not found");
+    const char *pPoint = strrchr(fileName, '.');
 
-    arc_t auxM;
+    if(strcmp(pPoint, ".txt") == 0){
+      std::ifstream f(fileName);
+      
+      assert(f.is_open() && "Instance File not found");
 
-    f>>n>>auxM; //nodes arcs
-    for(node_t i=0;i<=n;++i) //jumping N lines (nd 100)
-      f.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+      arc_t auxM;
 
-    adj.resize(n + 1);
-    for(arc_t i=0;i<auxM;++i){
-      node_t u, v;
-      weight_t w;
-      f>>u>>v>>w;
-      add_arc(u, v, w);
+      f>>n>>auxM; //nodes arcs
+      for(node_t i=0;i<=n;++i) //jumping N lines (nd 100)
+        f.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
+      adj.resize(n + 1);
+      for(arc_t i=0;i<auxM;++i){
+        node_t u, v;
+        weight_t w;
+        f>>u>>v>>w;
+        add_arc(u, v, w);
+
+      }
     }
+    else if(strcmp(pPoint, ".gr") == 0){ //DIMACS
+      std::ifstream f(fileName);
+      
+      assert(f.is_open() && "Instance File not found");
 
+      std::string line;
+      while(getline(f, line)){
+        if(line[0] == 'p'){
+          arc_t auxM;
+          sscanf(line.c_str(), "%*s %*s %u %u", &n, &auxM);
+          adj.resize(n + 1);
+        }
+        else if(line[0] == 'a'){
+          node_t u, v;
+          weight_t w;
+          sscanf(line.c_str(), "%*s %u %u %llu", &u, &v, &w);
+          add_arc(u, v, w);
+        }
+      }
+    }
   }
   GraphW::GraphW(const std::string &fileName) : GraphW(fileName.c_str()) { }
 
@@ -87,6 +111,7 @@ namespace graph{
     mxW = std::max(mxW, w);
     miNd = std::min({miNd, u, v});
     mxNd = std::max({mxNd, u, v});
+    ++m;
   }
 
 }
