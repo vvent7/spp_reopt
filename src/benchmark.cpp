@@ -1,14 +1,18 @@
 #include <iostream> // std::cout
 #include <string> // std::string
 #include <algorithm> // std::sort
+#include <numeric>
 #include <cmath> // std::floor
+#include <random>
 #include "spp.h"
 #include "spp_queues.h"
 #include "graph.h"
-#include "benchmark.h" 
-
+#include "benchmark.h"
+#include "random_factory.h"
 namespace benchmark{
   using namespace std;
+
+  constexpr auto CSV_HEADER = "source,new_source,group,dijkstra_dheap,dijkstra_radix,rdijkstra_dheap,rdijkstra_radix";
 
   Benchmark::Benchmark()
     : r_cur(graph::NIL_NODE){}
@@ -19,11 +23,11 @@ namespace benchmark{
       rh(g.n_nodes()),
       r_cur(graph::NIL_NODE){}
   
+  Benchmark::Benchmark(const std::string &fileName)
+    :Benchmark(fileName.c_str()){}
   
-  //source,new_source,group,dijkstra_sheap,r-dijktra_sheap,disjktra_radix_heap,r-dijkstra_radix_heap
   void Benchmark::run_r(spp::node_t r){
     if(r_cur != r) set_r(r_cur = r);
-
 
     vector<pair<spp::dist_t, spp::node_t>> nodesByDist;
     nodesByDist.reserve(g.max_node() - g.min_node() + 1);
@@ -31,40 +35,41 @@ namespace benchmark{
       nodesByDist.emplace_back(r_ans.first[u], u);
     sort(nodesByDist.begin(), nodesByDist.end());
 
-    // cout<<"Nodes: "<<g.n_nodes()<<endl;
-    // cout<<"Arcs: "<<g.n_arcs()<<endl;
-    // cout<<"Min Node: "<<g.min_node()<<endl;
-    // cout<<"Max Node: "<<g.max_node()<<endl;
-
-    // for(int i=g.min_node();i<=g.max_node();++i){
-    //   cout<<i<<": ";
-    //   for(auto x : g[i])
-    //     cout<<"("<<x.first<<" "<<x.second<<") ";
-    //   cout<<endl;
-    // }
-    // cout<<"SOURCE(R) "<<r<<": ";
-    // for(auto x : nodesByDist)
-    //   cout<<"("<<x.first<<", "<<x.second<<") ";
-    // cout<<"\n";
-
-    //todo...
-
     size_t group_size = nodesByDist.size()/J_GROUPS; //floor
     size_t ceiled_groups = nodesByDist.size()%J_GROUPS;
 
-    //ceiled portion (first nodesByDist.size()%J_GROUPS groups)
-    for(size_t j=0;j<ceiled_groups;++j){
-      size_t l = j*(group_size+1), r = l + group_size;
-      pair<size_t, size_t> range = find_k_s(nodesByDist, l, r);
-      //process the new sources s...
-    }
+    //will work for both ceiled and floor portions
+    for(size_t j=0, begin, end;j<J_GROUPS;++j){
+      if(j < ceiled_groups){
+        begin = j*(group_size+1);
+        end = begin + group_size + 1;
+      }
+      else{
+        // begin = ceiled_groups*(group_size+1) + (j-ceiled_groups)*group_size;
+        begin = ceiled_groups + j * group_size;
+        end = begin + group_size;
+      }
 
-    //floor portion
-    for(size_t j=0;j<J_GROUPS-ceiled_groups;++j){
-      size_t l = ceiled_groups*(group_size+1) + j*group_size, r = l + group_size - 1;
-      pair<size_t, size_t> range = find_k_s(nodesByDist, l, r);
-      //process the new sources s...
+      auto new_sources = random_factory::k_random_nonrepeat(K_NODES, begin, end);
+      
+      for(auto sI : new_sources){
+        spp::node_t s = nodesByDist[sI].second;
+        for(int i=0;i<NREPS_WARMUP;++i) run_s(s); //ignore for warmup
+        for(int i=0;i<NREPS;++i){
+          auto times = run_s(s);
+          cout<<r<<","<<s<<","<<j+1;
+          for(auto x : times) cout<<","<<x;
+          cout<<endl;
+        }
+      }
+
     }
+  }
+
+  void Benchmark::run(){
+    cout<<CSV_HEADER<<endl;
+    auto r = random_factory::k_random_nonrepeat(P_SOURCES, g.min_node(), g.max_node());
+    for(auto rI : r) run_r(rI);
   }
 
   
@@ -76,29 +81,78 @@ namespace benchmark{
     r_spp_tree = sp.spp_tree(r_ans.second);
   }
 
-  pair<size_t, size_t> Benchmark::find_k_s(const vpdn &nodesByDist, size_t l, size_t r){
-    assert(r - l + 1 >= K_NODES && "Not enough nodes to find K_NODES");
+  vector<double> Benchmark::run_s(spp::node_t s){
+    vector<double> times(4);
+
+    //DIJKSTRA, DHEAP
+    reset(s_ans, dh);
+    sp.dijkstra(g, s, s_ans, dh);
+    times[0] = sp.last_timing();
+    
+    #ifndef NDEBUG
+    auto aux=s_ans;
+    #endif
+
+    //DIJKSTRA, RADIX
+    reset(s_ans, rh);
+    sp.dijkstra(g, s, s_ans, rh);
+    times[1] = sp.last_timing();
+
+    #ifndef NDEBUG
+    if(aux.first!=s_ans.first) cout<<"ERROR - DIJKSTRA RADIX\n", exit(1);
+    #endif
+
+    //RDIJKSTRA, DHEAP
+    reset(s_ans, dh);
+    sp.r_dijkstra(g, s, s_ans, r_ans, r_spp_tree, dh);
+    times[2] = sp.last_timing();
+
+    #ifndef NDEBUG
+    if(aux.first!=s_ans.first) cout<<"ERROR - RDIJKSTRA DHEAP\n", exit(1);
+    #endif
+
+    //RDIJKSTRA, RADIX
+    reset(s_ans, rh);
+    sp.r_dijkstra(g, s, s_ans, r_ans, r_spp_tree, rh);
+    times[3] = sp.last_timing();
+
+    #ifndef NDEBUG
+    if(aux.first!=s_ans.first) cout<<"ERROR - RDIJKSTRA RADIX\n", exit(1);
+    #endif
+
+    return times;
+  }
+
+  pair<size_t, size_t> Benchmark::find_k_s_avg(size_t begin, size_t end, const vpdn &nodesByDist){
+    assert(end - begin >= K_NODES && "Not enough nodes to find K_NODES");
 
     double avg = 0;
     size_t t = 0;
-    for(size_t i=l;i<=r && nodesByDist[i].first!=spp::INF;++i)
+    for(size_t i=begin;i<end && nodesByDist[i].first!=spp::INF;++i)
       avg += (nodesByDist[i].first - avg)/(++t);
     
-    if(t < K_NODES) return {l, l + K_NODES - 1}; //not enough "reachable" nodes
+    if(t < K_NODES) return {begin, begin + K_NODES}; //not enough "reachable" nodes
 
-    //get the K_NODES closest to the average
-    long long ans_l, ans_r;
-    ans_r = upper_bound(nodesByDist.begin()+l, nodesByDist.begin()+l+t, pdn(floor(avg),0)) - nodesByDist.begin();
-    ans_l = ans_r - 1;
+    end = begin + t;
 
-    while(ans_r - ans_l - 1 < K_NODES){
-      if(ans_l<l) ans_l=l-1, ans_r = l + K_NODES;
-      else if(ans_r>=r) ans_r=l+t, ans_l = ans_r - K_NODES - 1;
-      else if(abs(nodesByDist[ans_l].first - avg) < abs(nodesByDist[ans_r].first - avg)) --ans_l;
-      else ++ans_r;
+    //get the K_NODES closest to the average [begin,end)
+    size_t r = upper_bound(nodesByDist.begin()+begin, nodesByDist.begin()+end, pdn(floor(avg),spp::INF)) - nodesByDist.begin();
+  
+    if(r == begin) return {begin, begin + K_NODES};
+    else if(r == end) return {end - K_NODES, end};
+
+    size_t l = r - 1;
+
+    while(r - l - 1 < K_NODES){
+      if((avg - nodesByDist[l].first) <= abs(nodesByDist[r].first - avg)){
+        if(l != begin) --l;
+        else return {begin, begin + K_NODES};
+      }
+      else if(r+1 != end) ++r;
+      else return {end - K_NODES, end};
     }
 
-    return {ans_l+1, ans_r-1};
+    return {l+1, r};
   }
 
 }

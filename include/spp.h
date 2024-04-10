@@ -54,14 +54,11 @@ namespace spp{
     }
 
     template<typename queue_t> // r is previous source
-    answer_t r_dijkstra(const GraphW &g, node_t s, answer_t &ans, node_t r, const answer_t &r_ans, const Graph &r_tree, queue_t &q){
+    answer_t r_dijkstra(const GraphW &g, node_t s, answer_t &ans, const answer_t &r_ans, const Graph &r_tree, queue_t &q){
       timer t(&lastTiming);
 
       auto &[dr, pr] = r_ans;
       auto &[ds, ps] = ans;
-
-      // ds.assign(g.n_nodes() + 1, INF);
-      // ps.assign(g.n_nodes() + 1, 0);
 
       //reoptimization
       node_t *done = buffer1, *toQueue = buffer2;
@@ -71,7 +68,7 @@ namespace spp{
       for(size_t i=0;i<doneSz;++i){
         for(auto v : r_tree[done[i]]){
           ps[v] = done[i];
-          ds[v] = ds[v] - ds[s];
+          ds[v] = dr[v] - dr[s];
           done[doneSz++] = v;
         }
       }
@@ -82,12 +79,11 @@ namespace spp{
           if(ds[v] > ds[u] + w){
             if(ds[v]==INF) toQueue[toQueueSz++] = v;
             ds[v] = ds[u] + w;
+            ps[v] = u;
           }
         }
       }
       
-      // queue_t q(g.n_nodes() - done.size(), g.n_nodes()); //max_size, max_value
-      // for(auto u : toQueue) q.insert(ds[u], u);
       q.build(ds, toQueue, toQueue + toQueueSz);
       //==============
 
@@ -106,23 +102,13 @@ namespace spp{
       return ans;
     }
 
-    double last_timing() const{ return lastTiming; }
+    double last_timing() const { return lastTiming; }
 
   private:
     node_t n;
     node_t *buffer1, *buffer2;
     double lastTiming;
   };
-
-
-  // void init(const GraphW &g){
-  //   size_t n = g.n_nodes();
-  //   ++n;
-  //   ans1 = {std::vector<dist_t>(n), std::vector<node_t>(n)};
-  //   ans2 = {std::vector<dist_t>(n), std::vector<node_t>(n)};
-  //   buffer1 = new node_t[n];
-  //   buffer2 = new node_t[n];
-  // }
 }
 
 #endif

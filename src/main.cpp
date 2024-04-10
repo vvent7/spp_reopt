@@ -1,24 +1,25 @@
 #include <bits/stdc++.h>
-#include <random>
-#include "rand.h"
+#include "random_factory.h"
 #include "graph.h"
 #include "spp.h"
 #include "benchmark.h"
 
+#define _ ios_base::sync_with_stdio(0); cin.tie(0);
+#define endl '\n'
+
 using namespace std;
 
-constexpr int P = 10; //number of sources (r)
-
-int main(int argc, char *argv[]){
+int main(int argc, char *argv[]){_
   if(argc != 3){
     cerr<<"Usage: "<<argv[0]<<" <graph_file> <seed>"<<endl;
     return 1;
   }
 
+  cout<<fixed<<setprecision(3);
+  
+  random_factory::seed(stoull(argv[2]));
   benchmark::Benchmark b(argv[1]);
-
-  b.run_r(3); //run for root=3
-  b.run_r(1); //run for root=4
+  b.run();
 
   return 0;
 }
