@@ -5,13 +5,15 @@
 #include <vector> // std::vector
 #include <string> // std::string
 #include <algorithm> // std::min, std::max
+#include <limits>
 
 namespace graph{
-
   using node_t = unsigned int;
   using arc_t = unsigned int;
   using weight_t = unsigned long long;
   using pnw = std::pair<node_t, weight_t>;
+
+  constexpr node_t NIL_NODE = std::numeric_limits<node_t>::max();
 
   //always growing (delete not allowed)
   class Graph{

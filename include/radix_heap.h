@@ -299,9 +299,10 @@ template<typename KeyType, typename ValueType, KeyType NIL_KEY>
 class pair_radix_heap_decrease_duplicate {
   using pkv = std::pair<KeyType, ValueType>;
   public:
-    pair_radix_heap_decrease_duplicate(){ };
+    pair_radix_heap_decrease_duplicate()
+      : real_size(0), max_value(0), keys(nullptr){ };
     pair_radix_heap_decrease_duplicate(ValueType max_value)
-      : max_value(max_value), keys(new KeyType[max_value + 1]){ };
+      : real_size(0), max_value(max_value), keys(new KeyType[max_value + 1]){ };
     
     template<typename InputIterator>
     pair_radix_heap_decrease_duplicate(ValueType max_value, InputIterator begin, InputIterator end)
@@ -311,9 +312,10 @@ class pair_radix_heap_decrease_duplicate {
         s.emplace(keys[it->second] = it->first, it->second);
     }
 
+    template<typename InputIterator>
     void build(const std::vector<KeyType> &keyMap, InputIterator beginValues, InputIterator endValues){
       real_size = 0;
-      for(auto it = begin; it != end; ++it, ++real_size)
+      for(auto it = beginValues; it != endValues; ++it, ++real_size)
         s.emplace(keys[*it] = keyMap[*it], *it);
     }
       

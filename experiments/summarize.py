@@ -5,7 +5,7 @@ from os import listdir
 def summary_file(file_name):
     graph_instance = file_name.split('-')[0]
     instance_data = pd.read_csv(file_name)
-    instance_data = instance_data.drop(columns='new_source')#I kept the column new source in the csv for a possible debug of an anomalous case, but here they are useless
+    instance_data = instance_data.groupby(['source', 'group']).mean()# This is suppse to take the average of the executions of repeated instances
     
     by_src_and_group = instance_data.groupby(['source', 'group']).mean()#avg of the groups of each source
     
