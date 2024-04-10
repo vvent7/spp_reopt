@@ -3,15 +3,20 @@ import subprocess
 import random
 import pickle
 import sys
+from multiprocessing import Pool
+
 # If we give the seeds file of a previous execution it will repeate
 
 output_folder ='output'
 dataset_folder = 'datasets'
 
 
-def run_instance(path, seed):
+def run_instance(path, seed, outputfile):
+    print('Runing instance: '+ outputfile)
     instance = subprocess.run(['build/bin/main', path, str(seed)], capture_output=True, text= True)
-    return instance.stdout
+    with open(outputfile,'w',newline='') as file:
+                   file.write(instance.stdout)
+
 
 def next_seed(is_random, instance_name, seeds):#a random seed if is_random == True or the seed of a previous execution
     if is_random:
@@ -25,15 +30,22 @@ def next_seed(is_random, instance_name, seeds):#a random seed if is_random == Tr
             return random.randint(0, 2147483647)
 
 def run_all(random_seeds, seeds):#random_seeds == Tres seeds will randomly generatared otherwise I'm assuming that seeds is a properly loaded map of seeds
+    instances = []
     for path, folders, files in os.walk(dataset_folder):
         for filename in files:
             if filename.find("Init") < 0:
                 seed = next_seed(random_seeds, filename, seeds)
-                output = run_instance(os.path.join(path, filename), seed)
+                # output = run_instance(os.path.join(path, filename), seed)
                 file_prefix = path.removeprefix(dataset_folder+'/').replace("/","_")
                 file_sufix = filename.removesuffix(".txt")
-                with open(output_folder+"/{0}-{1}.csv".format(file_prefix, file_sufix),'w',newline='') as file:
-                   file.write(output)
+                outputfile = output_folder+"/{0}-{1}.csv".format(file_prefix, file_sufix)
+                instances.append((os.path.join(path, filename), seed, outputfile))
+                # with open(output_folder+"/{0}-{1}.csv".format(file_prefix, file_sufix),'w',newline='') as file:
+                #    file.write(output)
+    
+    with Pool(8) as p:
+         p.starmap(run_instance, instances)
+        
     
 if not os.path.exists(output_folder):
     os.makedirs(output_folder)
