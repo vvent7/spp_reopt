@@ -9,16 +9,19 @@
 #include "graph.h"
 #include "benchmark.h"
 #include "random_factory.h"
+
+#define SIZEOF(arr) (sizeof(arr) / sizeof(*arr))
+
 namespace benchmark{
   using namespace std;
 
-  constexpr auto CSV_HEADER = "source,new_source,group,dijkstra_dheap,dijkstra_radix,rdijkstra_dheap,rdijkstra_radix";
+  constexpr const char *CSV_HEADER[] = {"source","new_source","group","dijkstra_dheap","rdijkstra_dheap","dijkstra_radix","rdijkstra_radix"};
 
   Benchmark::Benchmark()
     : r_cur(graph::NIL_NODE){}
 
   Benchmark::Benchmark(const char *fileName)
-    : g(fileName), sp(g.n_nodes()),
+    : g(fileName),
       dh(g.n_nodes(), g.n_nodes()),
       rh(g.n_nodes()),
       r_cur(graph::NIL_NODE){}
@@ -29,10 +32,12 @@ namespace benchmark{
   void Benchmark::run_r(spp::node_t r){
     if(r_cur != r) set_r(r_cur = r);
 
-    vector<pair<spp::dist_t, spp::node_t>> nodesByDist;
-    nodesByDist.reserve(g.max_node() - g.min_node() + 1);
-    for(spp::node_t u = g.min_node(); u <= g.max_node(); ++u)
-      nodesByDist.emplace_back(r_dist[u], u);
+    vector<pair<spp::dist_t, spp::node_t>> nodesByDist(g.max_node() - g.min_node() + 1);
+    // nodesByDist.reserve(g.max_node() - g.min_node() + 1);
+    for(spp::node_t u = g.min_node(); u <= g.max_node(); ++u){
+      nodesByDist[u - g.min_node()] = {r_dist[u], u};
+      // nodesByDist.emplace_back(r_dist[u], u);
+    }
     sort(nodesByDist.begin(), nodesByDist.end());
 
     size_t group_size = nodesByDist.size()/J_GROUPS; //floor
@@ -60,9 +65,6 @@ namespace benchmark{
           printf("%u,%u,%zu", r, s, j+1);
           for(auto x : times) printf(",%.3lf", x);
           puts("");
-          // cout<<r<<","<<s<<","<<j+1;
-          // for(auto x : times) cout<<","<<x;
-          // cout<<endl;
         }
       }
 
@@ -70,8 +72,10 @@ namespace benchmark{
   }
 
   void Benchmark::run(){
-    puts(CSV_HEADER);
-    // cout<<CSV_HEADER<<endl;
+    printf("%s", CSV_HEADER[0]);
+    for(int i=1;i<(int)SIZEOF(CSV_HEADER);++i)
+      printf(",%s", CSV_HEADER[i]);
+    puts("");
     auto r = random_factory::k_random_nonrepeat(P_SOURCES, g.min_node(), g.max_node());
     for(auto rI : r) run_r(rI);
   }
@@ -80,45 +84,41 @@ namespace benchmark{
   //==============PRIVATE==============
 
   void Benchmark::set_r(spp::node_t r){
-    reset(rh, r_dist, r_parents);
-    sp.dijkstra_parents(g, r, r_dist, r_parents, rh);
-    r_spp_tree = sp.spp_tree(r_parents);
+    spp::dijkstra_parents(g, r, r_dist, r_parents, rh);
+    r_spp_tree = spp::spp_tree(r_parents);
   }
 
   vector<double> Benchmark::run_s(spp::node_t s){
     vector<double> times(4);
+    size_t i=0;
 
     //DIJKSTRA, DHEAP
-    reset(dh, s_dist);
-    sp.dijkstra(g, s, s_dist, dh);
-    times[0] = sp.last_timing();
+    spp::dijkstra(g, s, s_dist, dh);
+    times[i++] = spp::lastTiming;
     
     #ifndef NDEBUG
     auto aux=s_dist;
     #endif
 
-    //DIJKSTRA, RADIX
-    reset(rh, s_dist);
-    sp.dijkstra(g, s, s_dist, rh);
-    times[1] = sp.last_timing();
-
-    #ifndef NDEBUG
-    if(aux!=s_dist) cout<<"ERROR - DIJKSTRA RADIX\n", exit(1);
-    #endif
-
     //RDIJKSTRA, DHEAP
-    reset(dh, s_dist);
-    sp.r_dijkstra(g, s, s_dist, r_dist, r_spp_tree, dh);
-    times[2] = sp.last_timing();
+    spp::r_dijkstra(g, s, s_dist, r_dist, r_spp_tree, dh);
+    times[i++] = spp::lastTiming;
 
     #ifndef NDEBUG
     if(aux!=s_dist) cout<<"ERROR - RDIJKSTRA DHEAP\n", exit(1);
     #endif
 
+    //DIJKSTRA, RADIX
+    spp::dijkstra(g, s, s_dist, rh);
+    times[i++] = spp::lastTiming;
+
+    #ifndef NDEBUG
+    if(aux!=s_dist) cout<<"ERROR - DIJKSTRA RADIX\n", exit(1);
+    #endif
+
     //RDIJKSTRA, RADIX
-    reset(rh, s_dist);
-    sp.r_dijkstra(g, s, s_dist, r_dist, r_spp_tree, rh);
-    times[3] = sp.last_timing();
+    spp::r_dijkstra(g, s, s_dist, r_dist, r_spp_tree, rh);
+    times[i++] = spp::lastTiming;
 
     #ifndef NDEBUG
     if(aux!=s_dist) cout<<"ERROR - RDIJKSTRA RADIX\n", exit(1);

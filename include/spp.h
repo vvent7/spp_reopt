@@ -14,29 +14,19 @@ namespace spp{
   using distances_t = std::vector<dist_t>;
   using parents_t = std::vector<std::vector<node_t>>;
   constexpr dist_t INF = std::numeric_limits<dist_t>::max();
+  
+  extern double lastTiming;
 
-  class SPP{
-  public:
-    SPP() : n(0), buffer1(nullptr), buffer2(nullptr) { }
-    SPP(const node_t n)
-      : n(n), buffer1(new node_t[n+1]), buffer2(new node_t[n+1]) { }
-    SPP(const GraphW &g) : SPP(g.n_nodes()){ }
+  Graph spp_tree(parents_t &p);
 
-    ~SPP(){
-      delete [] buffer1;
-      delete [] buffer2;
-    }
-    
-    Graph spp_tree(parents_t &p){
-      Graph tr(p.size());
-      for(node_t i=0;i<(node_t)p.size();++i)
-        for(auto u : p[i])
-          if(u!=i) tr.add_arc(u, i);
-      return tr;
-    }
+  template<typename queue_t>
+  void dijkstra_parents(const GraphW &g, node_t s, distances_t &d, parents_t &p, queue_t &q){
+    q.clear();
+    d.assign(g.n_nodes() + 1, spp::INF);
+    p.resize(g.n_nodes() + 1);
+    for(auto &v : p) v.clear();
 
-    template<typename queue_t>
-    void dijkstra_parents(const GraphW &g, node_t s, distances_t &d, parents_t &p, queue_t &q){
+    { //timing scope
       timer t(&lastTiming);
 
       q.insert(d[s]=0, s);
@@ -55,9 +45,14 @@ namespace spp{
         }
       }
     }
+  }
 
-    template<typename queue_t>
-    void dijkstra(const GraphW &g, node_t s, distances_t &d, queue_t &q){
+  template<typename queue_t>
+  void dijkstra(const GraphW &g, node_t s, distances_t &d, queue_t &q){
+    q.clear();
+    d.assign(g.n_nodes() + 1, spp::INF);
+
+    { //timing scope
       timer t(&lastTiming);
 
       q.insert(d[s]=0, s); //root
@@ -71,15 +66,21 @@ namespace spp{
         }
       }
     }
+  }
 
-    template<typename queue_t> // r is previous source
-    void r_dijkstra(const GraphW &g, node_t s, distances_t &ds, const distances_t &dr, const Graph &r_tree, queue_t &q){
+  template<typename queue_t> // r is previous source
+  void r_dijkstra(const GraphW &g, node_t s, distances_t &ds, const distances_t &dr, const Graph &r_tree, queue_t &q){
+    static std::vector<node_t> done;
+
+    q.clear();
+    ds.assign(g.n_nodes() + 1, spp::INF);
+    if(done.size() < g.n_nodes() + 1) done.resize(g.n_nodes() + 1);
+
+    { //timing scope
       timer t(&lastTiming);
 
       //reoptimization
-      node_t *done = buffer1, *toQueue = buffer2;
-      size_t doneSz=1, toQueueSz=0;
-
+      size_t doneSz=1;
       done[0] = s; ds[s] = 0; //root
       for(size_t i=0;i<doneSz;++i){
         for(auto v : r_tree[done[i]]){
@@ -88,23 +89,13 @@ namespace spp{
           done[doneSz++] = v;
         }
       }
-      
-      for(size_t i=0;i<doneSz;++i){
-        node_t u = done[i];
-        for(auto [v, w] : g[u]){
-          if(ds[v] > ds[u] + w){
-            if(ds[v]==INF) toQueue[toQueueSz++] = v;
-            ds[v] = ds[u] + w;
-          }
-        }
-      }
-      
-      q.build(ds, toQueue, toQueue + toQueueSz);
+
+      // q.build(ds, toQueue, toQueue + toQueueSz);
+      q.build(ds, done.begin(), done.begin() + doneSz);
       //==============
 
       while(!q.empty()){
         auto [du, u] = q.extract_min();
-
         for(auto [v, w] : g[u]){
           if(ds[v] > du + w){
             if(ds[v]==INF) q.insert(ds[v] = du+w, v);
@@ -113,14 +104,8 @@ namespace spp{
         }
       }
     }
+  }
 
-    double last_timing() const { return lastTiming; }
-
-  private:
-    node_t n;
-    node_t *buffer1, *buffer2;
-    double lastTiming;
-  };
 }
 
 #endif

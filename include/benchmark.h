@@ -9,11 +9,11 @@
 #include "graph.h"
 #include "spp_queues.h"
 namespace benchmark{
-  constexpr int P_SOURCES = 5;   // number of sources (R)
-  constexpr int J_GROUPS = 10;    // number of groups (for each source R)
-  constexpr int K_NODES = 5;     // number of nodes by group
-  constexpr int NREPS_WARMUP = 0; // reps to warmup (by new source S)
-  constexpr int NREPS = 1;        // reps to measure (by new source S)
+  constexpr int P_SOURCES = 2;   // number of sources (R)
+  constexpr int J_GROUPS = 25;    // number of groups (for each source R)
+  constexpr int K_NODES = 3;     // number of nodes by group
+  constexpr int NREPS_WARMUP = 1; // reps to warmup (by new source S)
+  constexpr int NREPS = 2;        // reps to measure (by new source S)
 
   using pdn = std::pair<spp::dist_t, spp::node_t>;
   using vpdn = std::vector<std::pair<spp::dist_t, spp::node_t>>;
@@ -29,7 +29,6 @@ namespace benchmark{
 
   private:
     graph::GraphW g;
-    spp::SPP sp;
 
     //queues
     spp::dheap_spp dh;

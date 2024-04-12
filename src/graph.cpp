@@ -83,6 +83,7 @@ namespace graph{
           weight_t w;
           sscanf(line.c_str(), "%*s %u %u %llu", &u, &v, &w);
           add_arc(u, v, w);
+          add_arc(v, u, w);
         }
       }
     }

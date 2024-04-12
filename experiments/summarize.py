@@ -19,7 +19,6 @@ def summary_file(file_name):
 
 
 
-
 if not os.path.exists('out'):
     os.makedirs('out')
 
