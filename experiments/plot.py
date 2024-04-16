@@ -13,6 +13,8 @@ def plot_graph(instance):
     plt.xlabel('Grupo')
     plt.ylabel('Tempo')
     plt.show()
+    plt.gcf.canvas.manager.set_window_title(instance)
+
     
 
 

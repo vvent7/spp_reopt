@@ -9,8 +9,8 @@
 #include "graph.h"
 #include "spp_queues.h"
 namespace benchmark{
-  constexpr int P_SOURCES = 2;   // number of sources (R)
-  constexpr int J_GROUPS = 25;    // number of groups (for each source R)
+  constexpr int P_SOURCES = 5;   // number of sources (R)
+  constexpr int J_GROUPS = 10;    // number of groups (for each source R)
   constexpr int K_NODES = 3;     // number of nodes by group
   constexpr int NREPS_WARMUP = 1; // reps to warmup (by new source S)
   constexpr int NREPS = 2;        // reps to measure (by new source S)
@@ -40,6 +40,8 @@ namespace benchmark{
     spp::distances_t r_dist;
     spp::parents_t r_parents;
     graph::Graph r_spp_tree;
+    graph::Graph r_spp_dag;
+    graph::GraphW r_fs;
       //Second root (s)
     spp::distances_t s_dist;
 

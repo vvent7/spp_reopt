@@ -15,7 +15,7 @@
 namespace benchmark{
   using namespace std;
 
-  constexpr const char *CSV_HEADER[] = {"source","new_source","group","dijkstra_dheap","rdijkstra_dheap","dijkstra_radix","rdijkstra_radix"};
+  constexpr const char *CSV_HEADER[] = {"source","new_source","group","dijkstra_dheap","rdijkstra_dag_dheap","rdijkstra_tree_dheap","rauction_dag_dheap","rauction_tree_dheap","dijkstra_radix","rdijkstra_dag_radix","rdijkstra_tree_radix","rauction_dag_radix","rauction_tree_radix"};
 
   Benchmark::Benchmark()
     : r_cur(graph::NIL_NODE){}
@@ -86,43 +86,72 @@ namespace benchmark{
   void Benchmark::set_r(spp::node_t r){
     spp::dijkstra_parents(g, r, r_dist, r_parents, rh);
     r_spp_tree = spp::spp_tree(r_parents);
+    r_spp_dag = spp::spp_dag(r_parents);
+    r_fs = spp::spp_fs_auction(g, r_dist);
   }
 
   vector<double> Benchmark::run_s(spp::node_t s){
-    vector<double> times(4);
+    vector<double> times(10);
     size_t i=0;
 
+    //================DHEAP================
     //DIJKSTRA, DHEAP
     spp::dijkstra(g, s, s_dist, dh);
     times[i++] = spp::lastTiming;
     
     #ifndef NDEBUG
-    auto aux=s_dist;
+      auto aux=s_dist;
+      #define CHECK_DIST(MSG) if(aux!=s_dist) cout<<"ERROR - "<<MSG<<endl, exit(1);
+    #else
+      #define CHECK_DIST(MSG)
     #endif
 
-    //RDIJKSTRA, DHEAP
-    spp::r_dijkstra(g, s, s_dist, r_dist, r_spp_tree, dh);
+    //RDIJKSTRA-DAG, DHEAP
+    spp::r_dijkstra_dag(g, s, s_dist, r_dist, r_spp_dag, dh);
     times[i++] = spp::lastTiming;
+    CHECK_DIST("RDIJKSTRA-DAG DHEAP");
 
-    #ifndef NDEBUG
-    if(aux!=s_dist) cout<<"ERROR - RDIJKSTRA DHEAP\n", exit(1);
-    #endif
+    //RDIJKSTRA-TREE, DHEAP
+    spp::r_dijkstra_tree(g, s, s_dist, r_dist, r_spp_tree, dh);
+    times[i++] = spp::lastTiming;
+    CHECK_DIST("RDIJKSTRA-TREE DHEAP");
+
+    //RAUCTION-DAG, DHEAP
+    spp::r_auction_dag(r_fs, s, s_dist, r_dist, r_spp_dag, dh);
+    times[i++] = spp::lastTiming;
+    CHECK_DIST("RAUCTION-DAG DHEAP");
+    
+    //RAUCTION-TREE, DHEAP
+    spp::r_auction_tree(r_fs, s, s_dist, r_dist, r_spp_tree, dh);
+    times[i++] = spp::lastTiming;
+    CHECK_DIST("RAUCTION-TREE DHEAP");
+
+    //================RADIX================
 
     //DIJKSTRA, RADIX
     spp::dijkstra(g, s, s_dist, rh);
     times[i++] = spp::lastTiming;
+    CHECK_DIST("DIJKSTRA RADIX");
 
-    #ifndef NDEBUG
-    if(aux!=s_dist) cout<<"ERROR - DIJKSTRA RADIX\n", exit(1);
-    #endif
-
-    //RDIJKSTRA, RADIX
-    spp::r_dijkstra(g, s, s_dist, r_dist, r_spp_tree, rh);
+    //RDIJKSTRA-DAG, RADIX
+    spp::r_dijkstra_dag(g, s, s_dist, r_dist, r_spp_dag, rh);
     times[i++] = spp::lastTiming;
+    CHECK_DIST("RDIJKSTRA-DAG RADIX");
 
-    #ifndef NDEBUG
-    if(aux!=s_dist) cout<<"ERROR - RDIJKSTRA RADIX\n", exit(1);
-    #endif
+    //RDIJKSTRA-TREE, RADIX
+    spp::r_dijkstra_tree(g, s, s_dist, r_dist, r_spp_tree, rh);
+    times[i++] = spp::lastTiming;
+    CHECK_DIST("RDIJKSTRA-TREE RADIX");
+
+    //RAUCTION-DAG, RADIX
+    spp::r_auction_dag(r_fs, s, s_dist, r_dist, r_spp_dag, rh);
+    times[i++] = spp::lastTiming;
+    CHECK_DIST("RAUCTION-DAG RADIX");
+
+    //RAUCTION-TREE, RADIX
+    spp::r_auction_tree(r_fs, s, s_dist, r_dist, r_spp_tree, rh);
+    times[i++] = spp::lastTiming;
+    CHECK_DIST("RAUCTION-TREE RADIX");
 
     return times;
   }

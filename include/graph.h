@@ -10,7 +10,7 @@
 namespace graph{
   using node_t = unsigned int;
   using arc_t = unsigned int;
-  using weight_t = unsigned long long;
+  using weight_t = long long;
   using pnw = std::pair<node_t, weight_t>;
 
   constexpr node_t NIL_NODE = std::numeric_limits<node_t>::max();
